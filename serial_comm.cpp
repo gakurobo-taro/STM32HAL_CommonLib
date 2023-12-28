@@ -28,9 +28,10 @@ bool UsbCdcComm::tx(uint8_t *tx_bytes,size_t size){
 }
 
 void UsbCdcComm::tx_interrupt_task(void){
+	USBD_CDC_HandleTypeDef *cdc = (USBD_CDC_HandleTypeDef*)usb->pClassData;
 	if (cdc->TxState != 0){
-		uint8_t tmp_buff[64]={0};
 		size_t size = tx_buff.get_busy_level();
+		uint8_t tmp_buff[64]={0};
 		if(size>64) size=64;
 
 		for(size_t i = 0; i<size; i++){
@@ -39,6 +40,7 @@ void UsbCdcComm::tx_interrupt_task(void){
 		tx(tmp_buff,size);
 	}
 }
+
 
 size_t UsbCdcComm::rx(uint8_t *rx_bytes,size_t max_size){
 	size_t avilable_data = rx_buff.get_busy_level();
@@ -55,7 +57,6 @@ void UsbCdcComm::rx_interrupt_task(const uint8_t *input,size_t size){
 	for(size_t i = 0; i < size; i++){
 		rx_buff.push(input[i]);
 	}
-	HAL_GPIO_TogglePin(LED1_GPIO_Port,LED1_Pin);
 }
 
 #endif

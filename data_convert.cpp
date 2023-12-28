@@ -19,10 +19,8 @@ bool encode_can_frame(const DataPacket &data,CanFrame &can_frame){
 	can_frame.id = ((data.priority&0x7)<<26) | (((uint8_t)data.data_type&0xF)<<22)
 			| ((data.board_ID&0xF)<<18) | (data.register_ID&0xFFFF);
 
-	can_frame.size = data.data_length;
-	for(size_t i = 0; i < data.data_length; i++){
-		can_frame.data[i] = data.data[i];
-	}
+	can_frame.data_length = data.data_length;
+	memcpy(can_frame.data, data.data,data.data_length);
 	return true;
 
 }
@@ -34,10 +32,8 @@ bool decode_can_frame(const CanFrame &can_frame,DataPacket &data){
 		data.board_ID = (can_frame.id >> 18)&0xF;
 		data.register_ID = can_frame.id & 0xFFFF;
 
-		for(size_t i = 0; i<can_frame.size; i++){
-			data.data[i] = can_frame.data[i];
-		}
-		data.data_length = can_frame.size;
+		memcpy(data.data, can_frame.data,can_frame.data_length);
+		data.data_length = can_frame.data_length;
 
 		return true;
 	}else{
@@ -53,9 +49,7 @@ size_t encode_bytes(const DataPacket &data,uint8_t *output,size_t max_size){
 		output[2] = (data.register_ID>>8)&0xFF;
 		output[3] = data.register_ID & 0xFF;
 	}
-	for(size_t i = 4; i < (data.data_length+4); i++){
-		output[i] = data.data[i-4];
-	}
+	memcpy(&output[4], data.data,data.data_length);
 
 	if(max_size < 4){
 		return 0;
@@ -72,16 +66,14 @@ size_t encode_COBS_bytes(const DataPacket &data,uint8_t *output,size_t max_size)
 }
 
 bool decode_bytes(const uint8_t *input,const size_t input_size,DataPacket &data){
-	if(input_size >=4 && input_size <= 8){
+	if(input_size >=4 && input_size <= 12){
 		data.is_request = (input[0] >> 3) &0x1;
 		data.priority = input[0] & 0x7;
 		data.data_type = (DataType)((input[1]>>4)&0xF);
 		data.board_ID = input[1] &0xF;
 		data.register_ID = (input[2]<<8) | input[3];
 		data.data_length = input_size-4;
-		for(size_t i = 0; i<(input_size-4); i++){
-			data.data[i] = input[i+4];
-		}
+		memcpy(data.data, &input[4],input_size-4);
 		return true;
 	}else{
 		return false;
@@ -89,7 +81,7 @@ bool decode_bytes(const uint8_t *input,const size_t input_size,DataPacket &data)
 }
 
 bool decode_COBS_bytes(const uint8_t *input,DataPacket &data){
-	uint8_t decoded_bytes[8] = {0};
+	uint8_t decoded_bytes[12] = {0};
 	size_t decoded_size = decode_COBS(input,decoded_bytes,sizeof(decoded_bytes));
 	if(4 <= decoded_size && decoded_size <=8){
 		decode_bytes(decoded_bytes,decoded_size,data);

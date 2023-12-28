@@ -8,7 +8,7 @@
 #ifndef DATA_CONVERT_HPP_
 #define DATA_CONVERT_HPP_
 
-
+#include <string.h>
 #include "can_comm.hpp"
 #include "data_packet.hpp"
 

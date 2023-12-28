@@ -31,9 +31,10 @@ public:
 class UsbCdcComm : ISerial{
 private:
 	USBD_HandleTypeDef *usb;
-	USBD_CDC_HandleTypeDef *cdc;
-	RingBuffer<uint8_t,BuffSize::SIZE128> tx_buff;
-	RingBuffer<uint8_t,BuffSize::SIZE128> rx_buff;
+	RingBuffer<uint8_t,(size_t)BuffSize::SIZE128> tx_buff;
+	RingBuffer<uint8_t,(size_t)BuffSize::SIZE128> rx_buff;
+
+
 public:
 	UsbCdcComm(USBD_HandleTypeDef *_usb):usb(_usb){}
 

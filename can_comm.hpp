@@ -10,16 +10,26 @@
 
 #include "main.h"
 #include "ring_buffer.hpp"
-#include "gpio.h"
+#include "byte_reader_writer.hpp"
+#include <optional>
+#include <string.h>
 
 namespace G24_STM32HAL::CommonLib{
 
 struct CanFrame{
 	uint8_t data[8]={0};
-	size_t size=0;
+	size_t data_length=0;
 	uint32_t id=0;
 	bool is_ext_id=false;
 	bool is_remote=false;
+
+	ByteWriter writer(void){
+		return ByteWriter(data,sizeof(data),data_length);
+	}
+	ByteReader reader(void){
+		return ByteReader(data,sizeof(data));
+	}
+
 };
 
 enum class FilterMode{
@@ -36,7 +46,7 @@ private:
 	const uint32_t rx_filter_fifo;
 	const uint32_t rx_fifo_it;
 
-	RingBuffer<CanFrame, BuffSize::SIZE16> rx_buff;
+	RingBuffer<CanFrame, (size_t)BuffSize::SIZE16> rx_buff;
 
 public:
 	CanComm(CAN_HandleTypeDef *_can,uint32_t _rx_fifo,uint32_t _rx_filter_fifo,uint32_t _rx_fifo_it)

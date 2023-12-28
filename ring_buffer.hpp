@@ -12,70 +12,59 @@
 
 namespace G24_STM32HAL::CommonLib{
 
-enum class BuffSize{
-	SIZE2 = 2,
-    SIZE4 = 4,
-    SIZE8 = 8,
-    SIZE16 = 16,
-    SIZE32 = 32,
-    SIZE64 = 64,
-	SIZE128 = 128,
+enum class BuffSize:size_t{
+	SIZE2 = 1,
+	SIZE4,
+	SIZE8,
+	SIZE16,
+	SIZE32,
+	SIZE64,
+	SIZE128,
 };
 
-template<typename T, BuffSize SIZE>
+template<typename T, size_t n>
 class RingBuffer{
 private:
+	const size_t SIZE = 1<<n;
+	const size_t MASK = SIZE-1;
     int head = 0;
     int tail = 0;
-    T data_buff[(int)SIZE];
-    bool data_is_free[(int)SIZE];
+    int data_count = 0;
+
+    T data_buff[1<<n] = {0};
 public:
-    RingBuffer(){
-        for(int i = 0; i < (int)SIZE; i++){
-            data_is_free[i] = true;
-        }
-    }
-    bool push(const T &input){
+    void push(const T &input){
         data_buff[head] = input;
-        bool tmp = data_is_free[head];
-        data_is_free[head] = false;
-
-        head = (head+1) & ((int)SIZE-1);
-
-        //既に存在していたデータを上書きしていたらfalse
-        return tmp;
+        head = (head+1) & MASK;
+        data_count ++;
+        if(data_count > SIZE){
+            data_count = SIZE;
+            tail = head;
+        };
     }
 
     bool pop(T &output){
-        if(data_is_free[tail]){
-            tail = (tail + 1) & ((int)SIZE-1);
-            return false;
-        }else{
+        if(data_count > 0){
             output = data_buff[tail];
-            data_is_free[tail] = true;
-            tail = (tail + 1) & ((int)SIZE-1);
+            tail = (tail + 1) & MASK;
+            data_count --;
+            if(data_count < 0) data_count = 0;
             return true;
+        }else{
+            return false;
         }
     }
 
     int get_free_level(void){
-        int count = 0;
-        for(int i = 0; i < (int)SIZE; i++){
-            if(data_is_free[i]) count ++;
-        }
-        return count;
+        return SIZE - data_count;
     }
     int get_busy_level(void){
-    	int count = 0;
-    	for(int i = 0; i < (int)SIZE; i++){
-    		if(!data_is_free[i]) count ++;
-    	}
-    	return count;
+        return data_count;
     }
-    void free(void){
-    	for(int i = 0; i < (int)SIZE;i ++){
-    		data_is_free[i] = true;
-    	}
+    void reset(void){
+        head = 0;
+        tail = 0;
+        data_count = 0;
     }
 
 };

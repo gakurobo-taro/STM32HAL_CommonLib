@@ -46,7 +46,7 @@ bool CanComm::tx(CanFrame &tx_data){
 		tx_header.RTR = CAN_RTR_DATA;
 	}
 
-	tx_header.DLC = tx_data.size;
+	tx_header.DLC = tx_data.data_length;
 	tx_header.TransmitGlobalTime = DISABLE;
 
 	HAL_CAN_AddTxMessage(can, &tx_header, tx_data.data, &mailbox_num);
@@ -65,7 +65,7 @@ void CanComm::rx_interrupt_task(void){
 	rx_frame.is_remote = (rx_header.RTR == CAN_RTR_DATA)? false : true;
 	rx_frame.id = (rx_header.IDE == CAN_ID_STD)? rx_header.StdId : rx_header.ExtId;
 	rx_frame.is_ext_id = (rx_header.IDE == CAN_ID_STD)? false : true;
-	rx_frame.size = rx_header.DLC;
+	rx_frame.data_length = rx_header.DLC;
 
 	rx_buff.push(rx_frame);
 }
