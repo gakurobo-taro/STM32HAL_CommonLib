@@ -28,12 +28,11 @@ private:
 	const uint32_t ch;
 	const float min;
 	const float max;
-	float diff_inv;
+	const float diff_inv;
 
 public:
 	PWMHard(TIM_HandleTypeDef *_tim,uint32_t _ch,float _min = 0,float _max = 1)
-		: tim(_tim),ch(_ch),min(_min),max(_max){
-		diff_inv = 1/(max - min);
+		: tim(_tim),ch(_ch),min(_min),max(_max),diff_inv(1/(max - min)){
 	}
 
 	void out(float val) override;

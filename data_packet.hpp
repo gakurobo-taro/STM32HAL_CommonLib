@@ -36,7 +36,7 @@ struct DataPacket{
 	ByteWriter writer(void){
 		return ByteWriter(data,sizeof(data),data_length);
 	}
-	ByteReader reader(void){
+	ByteReader reader(void)const{
 		return ByteReader(data,sizeof(data));
 	}
 
