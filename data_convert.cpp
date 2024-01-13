@@ -16,8 +16,8 @@ bool encode_can_frame(const DataPacket &data,CanFrame &can_frame){
 	can_frame.is_ext_id = true;
 	can_frame.is_remote = data.is_request;
 
-	can_frame.id = ((data.priority&0x7)<<26) | (((uint8_t)data.data_type&0xF)<<22)
-			| ((data.board_ID&0xF)<<18) | (data.register_ID&0xFFFF);
+	can_frame.id = ((data.priority&0xF)<<24) | (((uint8_t)data.data_type&0xF)<<20)
+			| ((data.board_ID&0xF)<<16) | (data.register_ID&0xFFFF);
 
 	can_frame.data_length = data.data_length;
 	memcpy(can_frame.data, data.data,data.data_length);
@@ -27,9 +27,9 @@ bool encode_can_frame(const DataPacket &data,CanFrame &can_frame){
 bool decode_can_frame(const CanFrame &can_frame,DataPacket &data){
 	if(can_frame.is_ext_id){
 		data.is_request = can_frame.is_remote;
-		data.priority = (can_frame.id>>26)&0x7;
-		data.data_type = (DataType)((can_frame.id >> 22)&0xF);
-		data.board_ID = (can_frame.id >> 18)&0xF;
+		data.priority = (can_frame.id>>24)&0xF;
+		data.data_type = (DataType)((can_frame.id >> 20)&0xF);
+		data.board_ID = (can_frame.id >> 16)&0xF;
 		data.register_ID = can_frame.id & 0xFFFF;
 
 		memcpy(data.data, can_frame.data,can_frame.data_length);
@@ -44,7 +44,7 @@ bool decode_can_frame(const CanFrame &can_frame,DataPacket &data){
 
 size_t encode_bytes(const DataPacket &data,uint8_t *output,size_t max_size){
 	if(max_size >= 4){
-		output[0] = data.priority&0x7;
+		output[0] = data.priority&0xF;
 		output[1] = (((uint8_t)data.data_type&0xF) << 4)|(data.board_ID&0xF);
 		output[2] = (data.register_ID>>8)&0xFF;
 		output[3] = data.register_ID & 0xFF;
@@ -67,8 +67,8 @@ size_t encode_COBS_bytes(const DataPacket &data,uint8_t *output,size_t max_size)
 
 bool decode_bytes(const uint8_t *input,const size_t input_size,DataPacket &data){
 	if(input_size >=4 && input_size <= 12){
-		data.is_request = (input[0] >> 3) &0x1;
-		data.priority = input[0] & 0x7;
+		data.is_request = (input[0] >> F) &0x1;
+		data.priority = input[0] & 0xF;
 		data.data_type = (DataType)((input[1]>>4)&0xF);
 		data.board_ID = input[1] &0xF;
 		data.register_ID = (input[2]<<8) | input[3];
