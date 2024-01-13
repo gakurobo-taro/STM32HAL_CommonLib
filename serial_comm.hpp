@@ -23,7 +23,7 @@ public:
 	virtual size_t tx_available(void) = 0;
 
 	virtual size_t rx(uint8_t *rx_bytes,size_t max_size) = 0;
-	virtual size_t rx_avilable(void) = 0;
+	virtual size_t rx_available(void) = 0;
 };
 
 #ifdef USE_USB_CDC
@@ -47,7 +47,7 @@ public:
 
 	//rx functions
 	size_t rx(uint8_t *rx_bytes,size_t max_size) override;
-	size_t rx_avilable(void) override{
+	size_t rx_available(void) override{
 		return rx_buff.get_busy_level();
 	}
 	void rx_interrupt_task(const uint8_t *input,size_t size);
