@@ -8,6 +8,7 @@
 #ifndef DATA_CONVERT_HPP_
 #define DATA_CONVERT_HPP_
 
+#include <stdio.h>
 #include <string.h>
 #include "can_comm.hpp"
 #include "data_packet.hpp"
@@ -19,11 +20,15 @@ namespace DataConvert{
 	bool encode_can_frame(const DataPacket &data,CanFrame &can_frame);
 	bool decode_can_frame(const CanFrame &can_frame,DataPacket &data);
 
-	//encode/decode bytes
+	//encode/decode Cobsbytes
 	size_t encode_bytes(const DataPacket &data,uint8_t *output,size_t max_size);
 	size_t encode_COBS_bytes(const DataPacket &data,uint8_t *output,size_t max_size);
 	bool decode_bytes(const uint8_t *input,const size_t input_size,DataPacket &data);
 	bool decode_COBS_bytes(const uint8_t *input,DataPacket &data);
+
+	//encode/decode slcan str
+	size_t can_to_slcan(const CanFrame &frame,char *str);
+	bool slcan_to_can(const char *str, CanFrame &frame);
 
 	size_t encode_COBS(const uint8_t *input,size_t input_size,uint8_t *output,size_t output_size_limit);
 	size_t decode_COBS(const uint8_t *input,uint8_t *output, size_t output_size_limit);
