@@ -67,7 +67,7 @@ size_t encode_COBS_bytes(const DataPacket &data,uint8_t *output,size_t max_size)
 
 bool decode_bytes(const uint8_t *input,const size_t input_size,DataPacket &data){
 	if(input_size >=4 && input_size <= 12){
-		data.is_request = (input[0] >> F) &0x1;
+		data.is_request = (input[0] >> 4) &0x1;
 		data.priority = input[0] & 0xF;
 		data.data_type = (DataType)((input[1]>>4)&0xF);
 		data.board_ID = input[1] &0xF;
