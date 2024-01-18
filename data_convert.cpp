@@ -138,21 +138,20 @@ size_t can_to_slcan(const CanFrame &frame,char *str,const size_t str_max_size){
 	if(frame.is_remote){
 		str[++head] = '\r';
 	}else{
-		//DATA(10~)
 		for(size_t i = 0; i < frame.data_length; i++){
-			str[i*2 + 10] = (frame.data[i] >> 4)&0xF;
+			str[i*2 + head] = (frame.data[i] >> 4)&0xF;
 
-			if(str[i*2 + 10] < 10){
-				str[i*2 + 10] += '0';
+			if(str[i*2 + head] < 10){
+				str[i*2 + head] += '0';
 			}else{
-				str[i*2 + 10] += 'A'-10;
+				str[i*2 + head] += 'A'-10;
 			}
 
-			str[i*2 + 11] = frame.data[i] & 0xF;
-			if(str[i*2 + 11] < 10){
-				str[i*2 + 11] += '0';
+			str[i*2 + head+1] = frame.data[i] & 0xF;
+			if(str[i*2 + head+1] < 10){
+				str[i*2 + head+1] += '0';
 			}else{
-				str[i*2 + 11] += 'A'-10;
+				str[i*2 + head+1] += 'A'-10;
 			}
 		}
 		head += frame.data_length*2;
@@ -190,7 +189,7 @@ bool slcan_to_can(const char *str, CanFrame &frame){
 		for(head = 1; head < 9; head++){
 			int tmp = 0;
 			if(str[head] >= 'A'){
-				tmp = (str[head] - 'A') & 0xF;
+				tmp = (str[head] - 'A'+10) & 0xF;
 			}else{
 				tmp = (str[head] - '0') & 0xF;
 			}
@@ -201,7 +200,7 @@ bool slcan_to_can(const char *str, CanFrame &frame){
 		for(head = 1; head < 4; head++){
 			int tmp = 0;
 			if(str[head] >= 'A'){
-				tmp = (str[head] - 'A') & 0xF;
+				tmp = (str[head] - 'A'+10) & 0xF;
 			}else{
 				tmp = (str[head] - '0') & 0xF;
 			}
@@ -218,17 +217,16 @@ bool slcan_to_can(const char *str, CanFrame &frame){
 
 	}else{
 		for(int i = 0; i < frame.data_length; i ++){
-			int tmp1 = str[head + 1 + 2*i];
-			int tmp2 = str[head + 2 + 2*i];
-
+			int tmp1 = str[head + 2*i];
+			int tmp2 = str[head + 1 + 2*i];
 			if(tmp1 >= 'A'){
-				tmp1 = (tmp1 - 'A') & 0xF;
+				tmp1 = (tmp1 - 'A'+10) & 0xF;
 			}else{
 				tmp1 = (tmp1 - '0') & 0xF;
 			}
 
 			if(tmp2 >= 'A'){
-				tmp2 = (tmp2 - 'A') & 0xF;
+				tmp2 = (tmp2 - 'A'+10) & 0xF;
 			}else{
 				tmp2 = (tmp2 - '0') & 0xF;
 			}
@@ -238,7 +236,6 @@ bool slcan_to_can(const char *str, CanFrame &frame){
 	}
 	return true;
 }
-
 size_t encode_COBS(const uint8_t *input, size_t input_size, uint8_t *output, size_t output_size_limit) {
     uint8_t count = 0; //次にsource_data[i]に0x00が出るまでの配列番号をカウント
     int mark = 0; //最後に0x00が出たsource_data[i]の配列番号をキープ
