@@ -47,7 +47,7 @@ private:
 	const uint32_t rx_fifo_it;
 
 	RingBuffer<CanFrame, (size_t)BuffSize::SIZE16> rx_buff;
-
+	RingBuffer<CanFrame, (size_t)BuffSize::SIZE16> tx_buff;
 public:
 	CanComm(CAN_HandleTypeDef *_can,uint32_t _rx_fifo,uint32_t _rx_filter_fifo,uint32_t _rx_fifo_it)
 	:can(_can),rx_fifo(_rx_fifo),rx_filter_fifo(_rx_filter_fifo),rx_fifo_it(_rx_fifo_it){
@@ -56,14 +56,13 @@ public:
 	void start(void);
 
 	//can tx functions/////////////////////////////
-	bool tx(CanFrame &tx_data);
-	//inline functions
-	uint32_t tx_available(void){
-		return HAL_CAN_GetTxMailboxesFreeLevel(can);
-	}
+	uint32_t tx_available(void)const{return tx_buff.get_free_level();}
+	void tx_interrupt_task(void);
+	bool tx(CanFrame &tx_frame);
+
 
 	//can rx fuctions//////////////////////////////
-	uint32_t rx_available(void);
+	uint32_t rx_available(void)const {return rx_buff.get_busy_level();}
 	void rx_interrupt_task(void);
 	bool rx(CanFrame &rx_frame);
 

@@ -27,20 +27,22 @@ class RingBuffer{
 private:
 	const size_t SIZE = 1<<n;
 	const size_t MASK = SIZE-1;
-    int head = 0;
-    int tail = 0;
-    int data_count = 0;
+    size_t head = 0;
+    size_t tail = 0;
+    size_t data_count = 0;
 
     T data_buff[1<<n] = {0};
 public:
-    void push(const T &input){
+    bool push(const T &input){
         data_buff[head] = input;
         head = (head+1) & MASK;
         data_count ++;
         if(data_count > SIZE){
             data_count = SIZE;
             tail = head;
+            return false;
         };
+        return true;
     }
 
     bool pop(T &output){
@@ -55,10 +57,10 @@ public:
         }
     }
 
-    int get_free_level(void){
+    size_t get_free_level(void)const{
         return SIZE - data_count;
     }
-    int get_busy_level(void){
+    size_t get_busy_level(void)const{
         return data_count;
     }
     void reset(void){

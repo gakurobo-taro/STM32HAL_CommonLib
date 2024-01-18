@@ -16,8 +16,8 @@ bool encode_can_frame(const DataPacket &data,CanFrame &can_frame){
 	can_frame.is_ext_id = true;
 	can_frame.is_remote = data.is_request;
 
-	can_frame.id = ((data.priority&0xF)<<24) | (((uint8_t)data.data_type&0xF)<<20)
-			| ((data.board_ID&0xF)<<16) | (data.register_ID&0xFFFF);
+	can_frame.id = ((data.priority&0xF)<<PRIORITY_BIT) | (((uint8_t)data.data_type&0xF)<<DATA_TYPE_BIT)
+			| ((data.board_ID&0xF)<<BOARD_ID_BIT) | (data.register_ID&0xFFFF);
 
 	can_frame.data_length = data.data_length;
 	memcpy(can_frame.data, data.data,data.data_length);
@@ -27,9 +27,9 @@ bool encode_can_frame(const DataPacket &data,CanFrame &can_frame){
 bool decode_can_frame(const CanFrame &can_frame,DataPacket &data){
 	if(can_frame.is_ext_id){
 		data.is_request = can_frame.is_remote;
-		data.priority = (can_frame.id>>24)&0xF;
-		data.data_type = (DataType)((can_frame.id >> 20)&0xF);
-		data.board_ID = (can_frame.id >> 16)&0xF;
+		data.priority = (can_frame.id>>PRIORITY_BIT)&0xF;
+		data.data_type = (DataType)((can_frame.id >> DATA_TYPE_BIT)&0xF);
+		data.board_ID = (can_frame.id >> BOARD_ID_BIT)&0xF;
 		data.register_ID = can_frame.id & 0xFFFF;
 
 		memcpy(data.data, can_frame.data,can_frame.data_length);
@@ -91,7 +91,10 @@ bool decode_COBS_bytes(const uint8_t *input,DataPacket &data){
 	}
 }
 
-size_t can_to_slcan(const CanFrame &frame,char *str){
+size_t can_to_slcan(const CanFrame &frame,char *str,const size_t str_max_size){
+	if(str_max_size < SLCAN_STR_MAX_SIZE){
+		return 0;
+	}
 	size_t head = 0;
 	//frame type(0)
 	if(frame.is_remote){
@@ -136,7 +139,7 @@ size_t can_to_slcan(const CanFrame &frame,char *str){
 		str[++head] = '\r';
 	}else{
 		//DATA(10~)
-		for(int i = 0; i < frame.data_length; i++){
+		for(size_t i = 0; i < frame.data_length; i++){
 			str[i*2 + 10] = (frame.data[i] >> 4)&0xF;
 
 			if(str[i*2 + 10] < 10){

@@ -25,38 +25,70 @@ void CanComm::start(void){
 }
 
 //tx//////////////////////////////////////////////////////////////////////
-bool CanComm::tx(CanFrame &tx_data){
-	uint32_t mailbox_num;
-	if(!tx_available()){
-		return false;
-	}
-	CAN_TxHeaderTypeDef tx_header;
+bool CanComm::tx(CanFrame &tx_frame){
+	if(HAL_CAN_GetTxMailboxesFreeLevel(can)){
+		uint32_t mailbox_num;
+		CAN_TxHeaderTypeDef tx_header;
 
-	if(tx_data.is_ext_id){
-		tx_header.ExtId = tx_data.id;
-		tx_header.IDE = CAN_ID_EXT;
+		if(tx_frame.is_ext_id){
+			tx_header.ExtId = tx_frame.id;
+			tx_header.IDE = CAN_ID_EXT;
+		}else{
+			tx_header.StdId = tx_frame.id;
+			tx_header.IDE = CAN_ID_STD;
+		}
+
+		if(tx_frame.is_remote){
+			tx_header.RTR = CAN_RTR_REMOTE;
+		}else{
+			tx_header.RTR = CAN_RTR_DATA;
+		}
+
+		tx_header.DLC = tx_frame.data_length;
+		tx_header.TransmitGlobalTime = DISABLE;
+
+		HAL_CAN_AddTxMessage(can, &tx_header, tx_frame.data, &mailbox_num);
 	}else{
-		tx_header.StdId = tx_data.id;
-		tx_header.IDE = CAN_ID_STD;
+		if(!tx_buff.push(tx_frame)){
+			return false;
+		}
 	}
 
-	if(tx_data.is_remote){
-		tx_header.RTR = CAN_RTR_REMOTE;
-	}else{
-		tx_header.RTR = CAN_RTR_DATA;
-	}
-
-	tx_header.DLC = tx_data.data_length;
-	tx_header.TransmitGlobalTime = DISABLE;
-
-	HAL_CAN_AddTxMessage(can, &tx_header, tx_data.data, &mailbox_num);
 	return true;
+}
+void CanComm::tx_interrupt_task(void){
+	while(HAL_CAN_GetTxMailboxesFreeLevel(can) && tx_buff.get_busy_level()){
+		CanFrame tx_frame;
+
+		if(!tx_buff.pop(tx_frame)){
+			break;
+		}
+
+		uint32_t mailbox_num;
+		CAN_TxHeaderTypeDef tx_header;
+
+		if(tx_frame.is_ext_id){
+			tx_header.ExtId = tx_frame.id;
+			tx_header.IDE = CAN_ID_EXT;
+		}else{
+			tx_header.StdId = tx_frame.id;
+			tx_header.IDE = CAN_ID_STD;
+		}
+
+		if(tx_frame.is_remote){
+			tx_header.RTR = CAN_RTR_REMOTE;
+		}else{
+			tx_header.RTR = CAN_RTR_DATA;
+		}
+
+		tx_header.DLC = tx_frame.data_length;
+		tx_header.TransmitGlobalTime = DISABLE;
+
+		HAL_CAN_AddTxMessage(can, &tx_header, tx_frame.data, &mailbox_num);
+	}
 }
 
 //rx//////////////////////////////////////////////////////////////////////////////////////////
-uint32_t CanComm::rx_available(void){
-	return rx_buff.get_busy_level();
-}
 void CanComm::rx_interrupt_task(void){
 	CAN_RxHeaderTypeDef rx_header;
 	CanFrame rx_frame;
