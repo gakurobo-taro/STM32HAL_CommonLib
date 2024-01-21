@@ -17,12 +17,18 @@
 
 namespace G24_STM32HAL::CommonLib{
 
+struct SerialData{
+	static constexpr size_t max_size = 64;
+	uint8_t data[max_size] = {0};
+	size_t size = 0;
+};
+
 class ISerial{
 public:
-	virtual bool tx(uint8_t *tx_bytes,size_t size) = 0;
+	virtual bool tx(const SerialData &data) = 0;
 	virtual size_t tx_available(void) = 0;
 
-	virtual size_t rx(uint8_t *rx_bytes,size_t max_size) = 0;
+	virtual bool rx(SerialData &data) = 0;
 	virtual size_t rx_available(void) = 0;
 };
 
@@ -31,22 +37,21 @@ public:
 class UsbCdcComm : ISerial{
 private:
 	USBD_HandleTypeDef *usb;
-	RingBuffer<uint8_t,(size_t)BuffSize::SIZE128> tx_buff;
-	RingBuffer<uint8_t,(size_t)BuffSize::SIZE128> rx_buff;
-
+	RingBuffer<SerialData,(size_t)BuffSize::SIZE8> tx_buff;
+	RingBuffer<SerialData,(size_t)BuffSize::SIZE8> rx_buff;
 
 public:
 	UsbCdcComm(USBD_HandleTypeDef *_usb):usb(_usb){}
 
 	//tx functions
-	bool tx(uint8_t *tx_bytes,size_t size) override;
+	bool tx(const SerialData &data) override;
 	size_t tx_available(void) override{
 		return tx_buff.get_free_level();
 	}
 	void tx_interrupt_task(void);
 
 	//rx functions
-	size_t rx(uint8_t *rx_bytes,size_t max_size) override;
+	bool rx(SerialData &data) override;
 	size_t rx_available(void) override{
 		return rx_buff.get_busy_level();
 	}

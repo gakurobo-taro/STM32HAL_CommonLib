@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "can_comm.hpp"
+#include "serial_comm.hpp"
 #include "data_packet.hpp"
 
 namespace G24_STM32HAL::CommonLib{
