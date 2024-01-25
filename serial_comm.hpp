@@ -34,11 +34,12 @@ public:
 
 #ifdef USE_USB_CDC
 
+template<size_t TX_BUFF_N,size_t RX_BUFF_N>
 class UsbCdcComm : ISerial{
 private:
 	USBD_HandleTypeDef *usb;
-	RingBuffer<SerialData,(size_t)BuffSize::SIZE8> tx_buff;
-	RingBuffer<SerialData,(size_t)BuffSize::SIZE8> rx_buff;
+	RingBuffer<SerialData,TX_BUFF_N> tx_buff;
+	RingBuffer<SerialData,RX_BUFF_N> rx_buff;
 
 public:
 	UsbCdcComm(USBD_HandleTypeDef *_usb):usb(_usb){}
@@ -51,13 +52,54 @@ public:
 	void tx_interrupt_task(void);
 
 	//rx functions
-	bool rx(SerialData &data) override;
+	bool rx(SerialData &data) override{
+		return rx_buff.pop(data);
+	}
 	size_t rx_available(void) override{
 		return rx_buff.get_busy_level();
 	}
 	void rx_interrupt_task(const uint8_t *input,size_t size);
 
 };
+
+//////////////////////////////////////////////////////////////////////////
+//CanComm function references
+//////////////////////////////////////////////////////////////////////////
+
+template<size_t TX_BUFF_N,size_t RX_BUFF_N>
+bool UsbCdcComm<TX_BUFF_N,RX_BUFF_N>::tx(const SerialData &data){
+	USBD_CDC_HandleTypeDef *cdc = (USBD_CDC_HandleTypeDef*)usb->pClassData;
+
+	if (cdc->TxState != 0){
+		tx_buff.push(data);
+		return true;
+	}
+
+	USBD_CDC_SetTxBuffer(usb, const_cast<uint8_t*>(data.data), data.size);
+	if(USBD_CDC_TransmitPacket(usb) != USBD_OK){
+		return false;
+	}
+	return true;
+}
+
+template<size_t TX_BUFF_N,size_t RX_BUFF_N>
+void UsbCdcComm<TX_BUFF_N,RX_BUFF_N>::tx_interrupt_task(void){
+	USBD_CDC_HandleTypeDef *cdc = (USBD_CDC_HandleTypeDef*)usb->pClassData;
+	if (cdc->TxState != 0){
+		SerialData tx_tmp;
+		if(tx_buff.pop(tx_tmp)){
+			tx(tx_tmp);
+		}
+	}
+}
+
+template<size_t TX_BUFF_N,size_t RX_BUFF_N>
+void UsbCdcComm<TX_BUFF_N,RX_BUFF_N>::rx_interrupt_task(const uint8_t *input,size_t size){
+	SerialData tmp;
+	memcpy(tmp.data,input,size);
+	tmp.size = size;
+	rx_buff.push(tmp);
+}
 
 
 #endif
