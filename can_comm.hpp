@@ -57,6 +57,9 @@ public:
 	void start(void){
 		HAL_CAN_Start(can);
 		HAL_CAN_ActivateNotification(can, rx_fifo_it);
+		HAL_CAN_ActivateNotification(can, CAN_TX_MAILBOX0);
+		HAL_CAN_ActivateNotification(can, CAN_TX_MAILBOX1);
+		HAL_CAN_ActivateNotification(can, CAN_TX_MAILBOX2);
 	}
 
 	CAN_HandleTypeDef *get_can_handle(void)const{
