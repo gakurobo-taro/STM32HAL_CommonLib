@@ -59,6 +59,10 @@ public:
 		HAL_CAN_ActivateNotification(can, rx_fifo_it);
 	}
 
+	CAN_HandleTypeDef *get_can_handle(void)const{
+		return can;
+	}
+
 	//can tx functions/////////////////////////////
 	uint32_t tx_available(void)const{return tx_buff.get_free_level();}
 	void tx_interrupt_task(void);

@@ -44,6 +44,10 @@ private:
 public:
 	UsbCdcComm(USBD_HandleTypeDef *_usb):usb(_usb){}
 
+	USBD_HandleTypeDef *get_usb_handle(void)const{
+		return usb;
+	}
+
 	//tx functions
 	bool tx(const SerialData &data) override;
 	size_t tx_available(void) override{
