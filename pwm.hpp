@@ -56,55 +56,48 @@ public:
 ////////////////////////////////////////////////////////////
 #ifdef USE_GPIO_LL
 
-namespace G24_STM32HAL::CommonLib{
-	class PWMLLSoft:public IPWM{
-	private:
-		GPIO_TypeDef *port;
-		const uint16_t pin;
-		const float min;
-		const float max;
-		const float diff_inv;
+class PWMLLSoft:public IPWM{
+private:
+	GPIO_TypeDef *port;
+	const uint16_t pin;
+	const float min;
+	const float max;
+	const float diff_inv;
 
-		uint16_t count = 0;
-		uint16_t period = 0;
-		uint16_t duty = 0xFFFF;
+	uint16_t count = 0;
+	uint16_t period = 0;
+	uint16_t duty = 0xFFFF;
 
-	public:
-		PWMLLSoft(GPIO_TypeDef *_port,uint16_t _pin,float _min = 0,float _max = 1)
-			: port(_port),pin(_pin),min(_min),max(_max),diff_inv(1/(max - min)){
-		}
-		void start(void)override{
+public:
+	PWMLLSoft(GPIO_TypeDef *_port,uint16_t _pin,float _min = 0,float _max = 1)
+		: port(_port),pin(_pin),min(_min),max(_max),diff_inv(1/(max - min)){
+	}
+	void out(float val)override{
+		if(val < min || max < val)val  = 0;
+		duty = (val - min)*diff_inv*period;
+	}
+	void set_duty(uint16_t _duty){
+		duty = _duty;
+	}
+	void set_period(uint16_t _period){
+		count = 0;
+		period = _period;
+	}
 
-		}
-		void stop(void)override{
+	void set_input_mode(bool mode){
+		if(mode) LL_GPIO_SetPinMode(port, pin, LL_GPIO_MODE_INPUT);
+		else LL_GPIO_SetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
+	}
 
-		}
-		void out(float val)override{
-			if(val < min || max < val)val  = 0;
-			duty = (val - min)*diff_inv*period;
-		}
-		void set_duty(uint16_t _duty){
-			duty = _duty;
-		}
-		void set_period(uint16_t _period){
-			count = 0;
-			period = _period;
-		}
-
-		void set_input_mode(bool mode){
-			if(mode) LL_GPIO_SetPinMode(port, pin, LL_GPIO_MODE_INPUT);
-			else LL_GPIO_SetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
-		}
-
-		bool get_pin_state(void){
-			return LL_GPIO_IsInputPinSet(port,pin);
-		}
-		void update(void){
-			count = count >= period ? 0 : count+1;
-			if(count > duty) LL_GPIO_ResetOutputPin(port,pin);
-			else LL_GPIO_SetOutputPin(port,pin);
-		}
-	};
+	bool get_pin_state(void){
+		return LL_GPIO_IsInputPinSet(port,pin);
+	}
+	void update(void){
+		count = count >= period ? 0 : count+1;
+		if(count > duty) LL_GPIO_ResetOutputPin(port,pin);
+		else LL_GPIO_SetOutputPin(port,pin);
+	}
+};
 #endif
 
 }
