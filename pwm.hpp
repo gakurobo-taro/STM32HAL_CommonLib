@@ -96,8 +96,8 @@ public:
 	//timer interrupt function
 	void update(void){
 		count = count >= period ? 0 : count+1;
-		if(count > duty && output_state) LL_GPIO_ResetOutputPin(port,pin);
-		else LL_GPIO_SetOutputPin(port,pin);
+		if(count < duty && output_state) LL_GPIO_SetOutputPin(port,pin);
+		else LL_GPIO_ResetOutputPin(port,pin);
 	}
 };
 #endif
