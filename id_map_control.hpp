@@ -8,6 +8,8 @@
 #ifndef ID_MAP_CONTROL_HPP_
 #define ID_MAP_CONTROL_HPP_
 
+#include "STM32HAL_CommonLib/byte_reader_writer.hpp"
+#include <functional>
 
 namespace G24_STM32HAL::CommonLib{
 
