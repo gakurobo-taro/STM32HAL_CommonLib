@@ -11,7 +11,7 @@
 #include "byte_reader_writer.hpp"
 #include <functional>
 
-namespace G24_STM32HAL::{
+namespace G24_STM32HAL::CommonLib{
 
 	class DataAccessor{
 	private:
