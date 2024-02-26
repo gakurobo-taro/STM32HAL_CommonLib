@@ -11,24 +11,24 @@
 #include "byte_reader_writer.hpp"
 #include <functional>
 
-namespace G24_STM32HAL::CommonLib{
+namespace G24_STM32HAL::{
 
-	class DataManager{
+	class DataAccessor{
 	private:
-		std::function<bool(CommonLib::ByteReader&)> f_set;
-		std::function<bool(CommonLib::ByteWriter&)> f_get;
+		std::function<bool(ByteReader&)> f_set;
+		std::function<bool(ByteWriter&)> f_get;
 	public:
-		DataManager(std::function<bool(CommonLib::ByteReader&)>&& _write,
-				std::function<bool(CommonLib::ByteWriter&)>&&_read):
+		DataAccessor(std::function<bool(ByteReader&)>&& _write,
+				std::function<bool(ByteWriter&)>&&_read):
 			f_set(_write),f_get(_read){}
 
 		//byte->ref
-		bool set(CommonLib::ByteReader& r){ return f_set ? f_set(r) : false; }
+		bool set(ByteReader& r){ return f_set ? f_set(r) : false; }
 		//ref->byte
-		bool get(CommonLib::ByteWriter& w){ return f_get ? f_get(w) : false; }
+		bool get(ByteWriter& w){ return f_get ? f_get(w) : false; }
 
-		template<class T> static DataManager generate(T& ref){
-			auto readf = [&](CommonLib::ByteReader& r){
+		template<class T> static DataAccessor generate(T& ref){
+			auto readf = [&](ByteReader& r){
 				std::optional<T> val = r.read<T>();
 				if(val.has_value()){
 					ref = val.value();
@@ -37,15 +37,15 @@ namespace G24_STM32HAL::CommonLib{
 					return false;
 				}
 			};
-			auto writef = [&](CommonLib::ByteWriter& w){
+			auto writef = [&](ByteWriter& w){
 				w.write<T>(ref);
 				return true;
 			};
-			return DataManager(readf,writef);
+			return DataAccessor(readf,writef);
 		}
 
-		template<class T> static DataManager generate(std::function<void(T)>&& setter,std::function<T(void)>&& getter){
-			auto readf = [&](CommonLib::ByteReader& r){
+		template<class T> static DataAccessor generate(std::function<void(T)>&& setter,std::function<T(void)>&& getter){
+			auto readf = [&](ByteReader& r){
 				std::optional<T> val = r.read<T>();
 				if(val.has_value()){
 					setter(val.value());
@@ -54,14 +54,14 @@ namespace G24_STM32HAL::CommonLib{
 				   return false;
 				}
 			};
-			auto writef = [&](CommonLib::ByteWriter& w){
+			auto writef = [&](ByteWriter& w){
 				w.write(getter());
 				return true;
 			};
-			return DataManager(readf,writef);
+			return DataAccessor(readf,writef);
 		}
-		template<class T> static DataManager generate(std::function<void(T)>&& setter){
-			auto readf = [&](CommonLib::ByteReader& r){
+		template<class T> static DataAccessor generate(std::function<void(T)>&& setter){
+			auto readf = [&](ByteReader& r){
 				std::optional<T> val = r.read<T>();
 				if(val.has_value()){
 					setter(val.value());
@@ -70,33 +70,33 @@ namespace G24_STM32HAL::CommonLib{
 				   return false;
 				}
 			};
-			return DataManager(readf,nullptr);
+			return DataAccessor(readf,nullptr);
 		}
-		template<class T> static DataManager generate(std::function<T(void)>&& getter){
-			auto writef = [&](CommonLib::ByteWriter& w){
+		template<class T> static DataAccessor generate(std::function<T(void)>&& getter){
+			auto writef = [&](ByteWriter& w){
 				w.write(getter());
 				return true;
 			};
-			return DataManager(nullptr,writef);
+			return DataAccessor(nullptr,writef);
 		}
 	};
 
 
 	class IDMap{
 	public:
-		std::unordered_map<size_t, DataManager> managers_map;
-		IDMap(std::unordered_map<size_t, DataManager>&& _managers_map):managers_map(_managers_map){}
+		std::unordered_map<size_t, DataAccessor> Accessors_map;
+		IDMap(std::unordered_map<size_t, DataAccessor>&& _Accessors_map):Accessors_map(_Accessors_map){}
 
-		bool set(int id,CommonLib::ByteReader& r){
-			auto iter=managers_map.find(id);
-			if (iter!=managers_map.end()){
+		bool set(int id,ByteReader& r){
+			auto iter=Accessors_map.find(id);
+			if (iter!=Accessors_map.end()){
 				return iter->second.set(r);
 			}
 			return false;
 		}
-		bool get(int id,CommonLib::ByteWriter& w){
-			auto iter=managers_map.find(id);
-			if (iter!=managers_map.end()){
+		bool get(int id,ByteWriter& w){
+			auto iter=Accessors_map.find(id);
+			if (iter!=Accessors_map.end()){
 				return iter->second.get(w);
 			}
 			return false;
@@ -105,13 +105,13 @@ namespace G24_STM32HAL::CommonLib{
 
 	class IDMapBuilder{
 	public:
-		std::unordered_map<size_t, DataManager> managers_map;
-		IDMapBuilder& add(size_t id,const DataManager& c){
-			managers_map.insert(std::pair(id, c));
+		std::unordered_map<size_t, DataAccessor> Accessors_map;
+		IDMapBuilder& add(size_t id,const DataAccessor& c){
+			Accessors_map.insert(std::pair(id, c));
 			return *this;
 		}
 		IDMap build(){
-		   return IDMap(std::move(managers_map));
+		   return IDMap(std::move(Accessors_map));
 		}
 	};
 
