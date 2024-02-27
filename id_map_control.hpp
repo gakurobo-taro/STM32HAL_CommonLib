@@ -84,19 +84,19 @@ namespace G24_STM32HAL::CommonLib{
 
 	class IDMap{
 	public:
-		std::unordered_map<size_t, DataAccessor> Accessors_map;
-		IDMap(std::unordered_map<size_t, DataAccessor>&& _Accessors_map):Accessors_map(_Accessors_map){}
+		std::unordered_map<size_t, DataAccessor> accessors_map;
+		IDMap(std::unordered_map<size_t, DataAccessor>&& _accessors_map):accessors_map(_accessors_map){}
 
 		bool set(int id,ByteReader& r){
-			auto iter=Accessors_map.find(id);
-			if (iter!=Accessors_map.end()){
+			auto iter=accessors_map.find(id);
+			if (iter!=accessors_map.end()){
 				return iter->second.set(r);
 			}
 			return false;
 		}
 		bool get(int id,ByteWriter& w){
-			auto iter=Accessors_map.find(id);
-			if (iter!=Accessors_map.end()){
+			auto iter=accessors_map.find(id);
+			if (iter!=accessors_map.end()){
 				return iter->second.get(w);
 			}
 			return false;
@@ -105,13 +105,13 @@ namespace G24_STM32HAL::CommonLib{
 
 	class IDMapBuilder{
 	public:
-		std::unordered_map<size_t, DataAccessor> Accessors_map;
+		std::unordered_map<size_t, DataAccessor> accessors_map;
 		IDMapBuilder& add(size_t id,const DataAccessor& c){
-			Accessors_map.insert(std::pair(id, c));
+			accessors_map.insert(std::pair(id, c));
 			return *this;
 		}
 		IDMap build(){
-		   return IDMap(std::move(Accessors_map));
+		   return IDMap(std::move(accessors_map));
 		}
 	};
 
