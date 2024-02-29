@@ -20,7 +20,7 @@ enum class DataType : uint8_t{
 	PCU_DATA,
 	RMC_DATA,
 	GPIOC_DATA,
-	COMMON_DATA_ENFORCE = 0xFF
+	COMMON_DATA_ENFORCE = 0xF
 };
 
 struct DataPacket{
