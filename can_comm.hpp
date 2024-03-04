@@ -184,7 +184,7 @@ void CanComm<TX_BUFF_N,RX_BUFF_N>::set_filter_mask(uint32_t filter_no,uint32_t i
 	uint32_t filter_mask;
 	switch(mode){
 	case FilterMode::ONLY_STD:
-		if(as_std){
+		if(!as_std){
 			filter_id = id << 21;
 			filter_mask = mask << 21 | 0x4;
 		}else{
@@ -193,7 +193,7 @@ void CanComm<TX_BUFF_N,RX_BUFF_N>::set_filter_mask(uint32_t filter_no,uint32_t i
 		}
 		break;
 	case FilterMode::ONLY_EXT:
-		if(as_std){
+		if(!as_std){
 			filter_id = id << 21 | 0x4;
 			filter_mask = mask << 21 | 0x4;
 		}else{
@@ -202,14 +202,13 @@ void CanComm<TX_BUFF_N,RX_BUFF_N>::set_filter_mask(uint32_t filter_no,uint32_t i
 		}
 		break;
 	case FilterMode::STD_AND_EXT:
-		if(as_std){
+		if(!as_std){
 			filter_id = id << 21;
 			filter_mask = mask << 21;
 		}else{
 			filter_id = id << 3;
 			filter_mask = mask << 3;
 		}
-
 	}
 
 	filter.FilterIdHigh         = filter_id >> 16;
@@ -218,7 +217,7 @@ void CanComm<TX_BUFF_N,RX_BUFF_N>::set_filter_mask(uint32_t filter_no,uint32_t i
 	filter.FilterMaskIdLow      = filter_mask;
 	filter.FilterScale          = CAN_FILTERSCALE_32BIT; // 32モード
 	filter.FilterFIFOAssignment = rx_fifo;      // FIFO0へ格納
-	filter.FilterBank           = 0;
+	filter.FilterBank           = filter_no;
 	filter.FilterMode           = CAN_FILTERMODE_IDMASK; // IDマスクモード
 	filter.SlaveStartFilterBank = 14;
 	filter.FilterActivation     = ENABLE;
@@ -238,6 +237,7 @@ void CanComm<TX_BUFF_N,RX_BUFF_N>::set_filter_free(uint32_t filter_no){
 	filter.FilterMode           = CAN_FILTERMODE_IDMASK;
 	filter.SlaveStartFilterBank = 14;
 	filter.FilterActivation     = ENABLE;
+
 	HAL_CAN_ConfigFilter(can, &filter);
 }
 
