@@ -27,25 +27,25 @@ namespace G24_STM32HAL::CommonLib{
 		//ref->byte
 		bool get(ByteWriter& w){ return f_get ? f_get(w) : false; }
 
-		template<class T> static DataAccessor generate(T& ref){
-			auto readf = [&](ByteReader& r){
+		template<class T> static DataAccessor generate(T* ref){
+			auto readf = [ref](ByteReader& r){
 				std::optional<T> val = r.read<T>();
 				if(val.has_value()){
-					ref = val.value();
+					*ref = val.value();
 					return true;
 				}else{
 					return false;
 				}
 			};
-			auto writef = [&](ByteWriter& w){
-				w.write<T>(ref);
+			auto writef = [ref](ByteWriter& w){
+				w.write<T>(*ref);
 				return true;
 			};
 			return DataAccessor(readf,writef);
 		}
 
-		template<class T> static DataAccessor generate(std::function<void(T)>&& setter,std::function<T(void)>&& getter){
-			auto readf = [&](ByteReader& r){
+		template<class T> static DataAccessor generate(std::function<void(T)> setter,std::function<T(void)> getter){
+			auto readf = [setter](ByteReader& r){
 				std::optional<T> val = r.read<T>();
 				if(val.has_value()){
 					setter(val.value());
@@ -54,14 +54,14 @@ namespace G24_STM32HAL::CommonLib{
 				   return false;
 				}
 			};
-			auto writef = [&](ByteWriter& w){
+			auto writef = [getter](ByteWriter& w){
 				w.write(getter());
 				return true;
 			};
 			return DataAccessor(readf,writef);
 		}
-		template<class T> static DataAccessor generate(std::function<void(T)>&& setter){
-			auto readf = [&](ByteReader& r){
+		template<class T> static DataAccessor generate(std::function<void(T)> setter){
+			auto readf = [setter](ByteReader& r){
 				std::optional<T> val = r.read<T>();
 				if(val.has_value()){
 					setter(val.value());
@@ -72,8 +72,8 @@ namespace G24_STM32HAL::CommonLib{
 			};
 			return DataAccessor(readf,nullptr);
 		}
-		template<class T> static DataAccessor generate(std::function<T(void)>&& getter){
-			auto writef = [&](ByteWriter& w){
+		template<class T> static DataAccessor generate(std::function<T(void)> getter){
+			auto writef = [getter](ByteWriter& w){
 				w.write(getter());
 				return true;
 			};

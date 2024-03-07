@@ -216,7 +216,7 @@ bool slcan_to_can(const char *str, CanFrame &frame){
 	if(frame.is_remote){
 
 	}else{
-		for(int i = 0; i < frame.data_length; i ++){
+		for(size_t i = 0; i < frame.data_length; i ++){
 			int tmp1 = str[head + 2*i];
 			int tmp2 = str[head + 1 + 2*i];
 			if(tmp1 >= 'A'){
