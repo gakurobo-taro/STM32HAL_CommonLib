@@ -42,7 +42,6 @@ private:
 	RingBuffer<SerialData,RX_BUFF_N> rx_buff;
 
 	SerialData tmp_buff;
-	bool data_is_remain = false;
 
 public:
 	UsbCdcComm(USBD_HandleTypeDef *_usb):usb(_usb){}
@@ -106,13 +105,12 @@ void UsbCdcComm<TX_BUFF_N,RX_BUFF_N>::rx_interrupt_task(const uint8_t *input,siz
 		if((input[itr]=='\r') || (input[itr]=='\n') || (input[itr]=='\0')){
 			tmp_buff.data[tmp_buff.size] = input[itr];
 			tmp_buff.size ++;
+
 			rx_buff.push(tmp_buff);
 
-			data_is_remain = false;
 			tmp_buff.size = 0;
 			memset(tmp_buff.data,0,tmp_buff.max_size);
 		}else{
-			data_is_remain = true;
 			tmp_buff.data[tmp_buff.size] = input[itr];
 			tmp_buff.size ++;
 		}
