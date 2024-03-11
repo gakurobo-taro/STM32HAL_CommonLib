@@ -38,9 +38,20 @@ enum class FilterMode{
 	STD_AND_EXT,
 };
 
+class ICan{
+public:
+	uint32_t virtual tx_available(void)const = 0;
+	bool virtual tx(const CanFrame &tx_frame) = 0;
+
+	uint32_t virtual rx_available(void)const = 0;
+	bool rx(CanFrame &rx_frame);
+};
+
+
+
 #ifdef USE_CAN
 template<size_t TX_BUFF_N,size_t RX_BUFF_N>
-class CanComm{
+class CanComm:public ICan{
 private:
 	CAN_HandleTypeDef *can;
 	const uint32_t rx_fifo;
@@ -69,7 +80,7 @@ public:
 	//can tx functions/////////////////////////////
 	uint32_t tx_available(void)const{return tx_buff.get_free_level();}
 	void tx_interrupt_task(void);
-	bool tx(CanFrame &tx_frame);
+	bool tx(const CanFrame &tx_frame);
 
 
 	//can rx fuctions//////////////////////////////
@@ -88,7 +99,7 @@ public:
 
 //tx//////////////////////////////////////////////////////////////////////
 template<size_t TX_BUFF_N,size_t RX_BUFF_N>
-bool CanComm<TX_BUFF_N,RX_BUFF_N>::tx(CanFrame &tx_frame){
+bool CanComm<TX_BUFF_N,RX_BUFF_N>::tx(const CanFrame &tx_frame){
 	if(HAL_CAN_GetTxMailboxesFreeLevel(can)){
 		uint32_t mailbox_num;
 		CAN_TxHeaderTypeDef tx_header;
@@ -110,7 +121,7 @@ bool CanComm<TX_BUFF_N,RX_BUFF_N>::tx(CanFrame &tx_frame){
 		tx_header.DLC = tx_frame.data_length;
 		tx_header.TransmitGlobalTime = DISABLE;
 
-		HAL_CAN_AddTxMessage(can, &tx_header, tx_frame.data, &mailbox_num);
+		HAL_CAN_AddTxMessage(can, &tx_header, const_cast<uint8_t*>(tx_frame.data), &mailbox_num);
 	}else{
 		if(!tx_buff.push(tx_frame)){
 			return false;
@@ -243,6 +254,12 @@ void CanComm<TX_BUFF_N,RX_BUFF_N>::set_filter_free(uint32_t filter_no){
 
 #endif
 
+#ifdef USE_CAN_BY_FDCAN
+class FDCanComm:public ICan{
+
+};
+
+#endif
 }
 
 #endif /* CAN_COMM_HPP_ */

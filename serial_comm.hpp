@@ -26,10 +26,10 @@ struct SerialData{
 class ISerial{
 public:
 	virtual bool tx(const SerialData &data) = 0;
-	virtual size_t tx_available(void) = 0;
+	virtual size_t tx_available(void) const = 0;
 
 	virtual bool rx(SerialData &data) = 0;
-	virtual size_t rx_available(void) = 0;
+	virtual size_t rx_available(void) const = 0;
 };
 
 #ifdef USE_USB_CDC
@@ -41,6 +41,9 @@ private:
 	RingBuffer<SerialData,TX_BUFF_N> tx_buff;
 	RingBuffer<SerialData,RX_BUFF_N> rx_buff;
 
+	SerialData tmp_buff;
+	bool data_is_remain = false;
+
 public:
 	UsbCdcComm(USBD_HandleTypeDef *_usb):usb(_usb){}
 
@@ -50,7 +53,7 @@ public:
 
 	//tx functions
 	bool tx(const SerialData &data) override;
-	size_t tx_available(void) override{
+	size_t tx_available(void)const override{
 		return tx_buff.get_free_level();
 	}
 	void tx_interrupt_task(void);
@@ -59,7 +62,7 @@ public:
 	bool rx(SerialData &data) override{
 		return rx_buff.pop(data);
 	}
-	size_t rx_available(void) override{
+	size_t rx_available(void) const override{
 		return rx_buff.get_busy_level();
 	}
 	void rx_interrupt_task(const uint8_t *input,size_t size);
@@ -99,10 +102,22 @@ void UsbCdcComm<TX_BUFF_N,RX_BUFF_N>::tx_interrupt_task(void){
 
 template<size_t TX_BUFF_N,size_t RX_BUFF_N>
 void UsbCdcComm<TX_BUFF_N,RX_BUFF_N>::rx_interrupt_task(const uint8_t *input,size_t size){
-	SerialData tmp;
-	memcpy(tmp.data,input,size);
-	tmp.size = size;
-	rx_buff.push(tmp);
+	for(size_t itr = 0; itr < size-1; itr++){
+		if((input[itr]=='\r') || (input[itr]=='\n')){
+			tmp_buff.data[tmp_buff.size] = input[itr];
+			tmp_buff.size ++;
+			rx_buff.push(tmp_buff);
+
+			data_is_remain = false;
+			tmp_buff.size = 0;
+			memset(tmp_buff.data,0,tmp_buff.max_size);
+		}else{
+			data_is_remain = true;
+			tmp_buff.data[tmp_buff.size] = input[itr];
+			tmp_buff.size ++;
+		}
+	}
+
 }
 
 
