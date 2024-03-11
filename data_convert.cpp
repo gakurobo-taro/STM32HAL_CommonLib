@@ -211,6 +211,9 @@ bool slcan_to_can(const char *str, CanFrame &frame){
 
 	//DLC
 	frame.data_length = str[head++]&0xF;
+	if(frame.data_length > 8){
+		return false;
+	}
 
 	//data
 	if(frame.is_remote){
