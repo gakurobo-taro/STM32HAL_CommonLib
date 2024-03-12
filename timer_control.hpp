@@ -14,6 +14,7 @@ namespace G24_STM32HAL::CommonLib{
 		void virtual set_and_start(uint16_t period) = 0; //period==0:stop, period!=0 set period and start
 		uint16_t virtual get_state(void)const = 0;       //period==0:stop, period!=0 running
 		void virtual set_task(std::function<void(void)> f) = 0;
+		void virtual reset_count(void) = 0;
 	};
 
 	class InterruptionTimerHard:public IInterruptionTimer{
@@ -58,7 +59,13 @@ namespace G24_STM32HAL::CommonLib{
 			}
 		}
 
-		TIM_HandleTypeDef *get_handler(void)const{return tim;}
+		TIM_HandleTypeDef *get_handler(void)const{
+			return tim;
+		}
+
+		void reset_count(void){
+			__HAL_TIM_SET_COUNTER(tim,0);
+		}
 	};
 }
 
