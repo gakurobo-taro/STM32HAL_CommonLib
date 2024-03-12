@@ -102,7 +102,7 @@ void UsbCdcComm<TX_BUFF_N,RX_BUFF_N>::tx_interrupt_task(void){
 template<size_t TX_BUFF_N,size_t RX_BUFF_N>
 void UsbCdcComm<TX_BUFF_N,RX_BUFF_N>::rx_interrupt_task(const uint8_t *input,size_t size){
 	for(size_t i = 0; i < size; i++){
-		if((input[i]=='\r') || (input[i]=='\n') || (input[i]=='\0') || (tmp_buff.size >= tmp_buff.max_size)){
+		if((input[i]=='\r') || (input[i]=='\n') || (input[i]=='\0') || (tmp_buff.size >= tmp_buff.max_size-1)){
 			tmp_buff.data[tmp_buff.size] = input[i];
 			tmp_buff.size ++;
 
