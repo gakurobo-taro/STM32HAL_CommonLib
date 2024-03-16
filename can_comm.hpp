@@ -13,6 +13,7 @@
 #include "byte_reader_writer.hpp"
 #include <optional>
 #include <string.h>
+#include <memory>
 
 namespace G24_STM32HAL::CommonLib{
 
@@ -44,13 +45,12 @@ public:
 	bool virtual tx(const CanFrame &tx_frame) = 0;
 
 	uint32_t virtual rx_available(void)const = 0;
-	bool rx(CanFrame &rx_frame);
+	bool virtual rx(CanFrame &rx_frame) = 0;
 };
 
 
 
 #ifdef USE_CAN
-template<size_t TX_BUFF_N,size_t RX_BUFF_N>
 class CanComm:public ICan{
 private:
 	CAN_HandleTypeDef *can;
@@ -58,11 +58,16 @@ private:
 	const uint32_t rx_filter_fifo;
 	const uint32_t rx_fifo_it;
 
-	RingBuffer<CanFrame, RX_BUFF_N> rx_buff;
-	RingBuffer<CanFrame, TX_BUFF_N> tx_buff;
+	std::unique_ptr<IRingBuffer<CanFrame>> rx_buff;
+	std::unique_ptr<IRingBuffer<CanFrame>> tx_buff;
 public:
-	CanComm(CAN_HandleTypeDef *_can,uint32_t _rx_fifo,uint32_t _rx_filter_fifo,uint32_t _rx_fifo_it)
-	:can(_can),rx_fifo(_rx_fifo),rx_filter_fifo(_rx_filter_fifo),rx_fifo_it(_rx_fifo_it){
+	CanComm(CAN_HandleTypeDef *_can,std::unique_ptr<IRingBuffer<CanFrame>> _rx_buff,std::unique_ptr<IRingBuffer<CanFrame>> &&_tx_buff,uint32_t _rx_fifo,uint32_t _rx_filter_fifo,uint32_t _rx_fifo_it)
+	:can(_can),
+	 rx_buff(std::move(_rx_buff)),
+	 tx_buff(std::move(_tx_buff)),
+	 rx_fifo(_rx_fifo),
+	 rx_filter_fifo(_rx_filter_fifo),
+	 rx_fifo_it(_rx_fifo_it){
 	}
 
 	void start(void){
@@ -78,15 +83,14 @@ public:
 	}
 
 	//can tx functions/////////////////////////////
-	uint32_t tx_available(void)const{return tx_buff.get_free_level();}
+	uint32_t tx_available(void)const override { return tx_buff->get_free_level(); }
 	void tx_interrupt_task(void);
-	bool tx(const CanFrame &tx_frame);
-
+	bool tx(const CanFrame &tx_frame)override;
 
 	//can rx fuctions//////////////////////////////
-	uint32_t rx_available(void)const {return rx_buff.get_busy_level();}
+	uint32_t rx_available(void)const override{ return rx_buff->get_busy_level(); }
 	void rx_interrupt_task(void);
-	bool rx(CanFrame &rx_frame);
+	bool rx(CanFrame &rx_frame)override;
 
 	//can filter setting///////////////////////////
 	void set_filter_mask(uint32_t filter_no,uint32_t id,uint32_t mask,FilterMode mode,bool as_std);
@@ -98,8 +102,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 
 //tx//////////////////////////////////////////////////////////////////////
-template<size_t TX_BUFF_N,size_t RX_BUFF_N>
-bool CanComm<TX_BUFF_N,RX_BUFF_N>::tx(const CanFrame &tx_frame){
+inline bool CanComm::tx(const CanFrame &tx_frame){
 	if(HAL_CAN_GetTxMailboxesFreeLevel(can)){
 		uint32_t mailbox_num;
 		CAN_TxHeaderTypeDef tx_header;
@@ -123,7 +126,7 @@ bool CanComm<TX_BUFF_N,RX_BUFF_N>::tx(const CanFrame &tx_frame){
 
 		HAL_CAN_AddTxMessage(can, &tx_header, const_cast<uint8_t*>(tx_frame.data), &mailbox_num);
 	}else{
-		if(!tx_buff.push(tx_frame)){
+		if(!tx_buff->push(tx_frame)){
 			return false;
 		}
 	}
@@ -131,12 +134,11 @@ bool CanComm<TX_BUFF_N,RX_BUFF_N>::tx(const CanFrame &tx_frame){
 	return true;
 }
 
-template<size_t TX_BUFF_N,size_t RX_BUFF_N>
-void CanComm<TX_BUFF_N,RX_BUFF_N>::tx_interrupt_task(void){
-	while(HAL_CAN_GetTxMailboxesFreeLevel(can) && tx_buff.get_busy_level()){
+inline void CanComm::tx_interrupt_task(void){
+	while(HAL_CAN_GetTxMailboxesFreeLevel(can) && tx_buff->get_busy_level()){
 		CanFrame tx_frame;
 
-		if(!tx_buff.pop(tx_frame)){
+		if(!tx_buff->pop(tx_frame)){
 			break;
 		}
 
@@ -165,8 +167,7 @@ void CanComm<TX_BUFF_N,RX_BUFF_N>::tx_interrupt_task(void){
 }
 
 //rx//////////////////////////////////////////////////////////////////////////////////////////
-template<size_t TX_BUFF_N,size_t RX_BUFF_N>
-void CanComm<TX_BUFF_N,RX_BUFF_N>::rx_interrupt_task(void){
+inline void CanComm::rx_interrupt_task(void){
 	CAN_RxHeaderTypeDef rx_header;
 	CanFrame rx_frame;
 
@@ -176,11 +177,10 @@ void CanComm<TX_BUFF_N,RX_BUFF_N>::rx_interrupt_task(void){
 	rx_frame.is_ext_id = (rx_header.IDE == CAN_ID_STD)? false : true;
 	rx_frame.data_length = rx_header.DLC;
 
-	rx_buff.push(rx_frame);
+	rx_buff->push(rx_frame);
 }
-template<size_t TX_BUFF_N,size_t RX_BUFF_N>
-bool CanComm<TX_BUFF_N,RX_BUFF_N>::rx(CanFrame &rx_frame){
-	if(rx_buff.pop(rx_frame)){
+inline bool CanComm::rx(CanFrame &rx_frame){
+	if(rx_buff->pop(rx_frame)){
 		return true;
 	}else{
 		return false;
@@ -188,8 +188,7 @@ bool CanComm<TX_BUFF_N,RX_BUFF_N>::rx(CanFrame &rx_frame){
 }
 
 //filter///////////////////////////////////////////////////////////////////////////////////
-template<size_t TX_BUFF_N,size_t RX_BUFF_N>
-void CanComm<TX_BUFF_N,RX_BUFF_N>::set_filter_mask(uint32_t filter_no,uint32_t id,uint32_t mask,FilterMode mode,bool as_std){
+inline void CanComm::set_filter_mask(uint32_t filter_no,uint32_t id,uint32_t mask,FilterMode mode,bool as_std){
 	CAN_FilterTypeDef filter;
 	uint32_t filter_id;
 	uint32_t filter_mask;
@@ -235,8 +234,7 @@ void CanComm<TX_BUFF_N,RX_BUFF_N>::set_filter_mask(uint32_t filter_no,uint32_t i
 
 	HAL_CAN_ConfigFilter(can, &filter);
 }
-template<size_t TX_BUFF_N,size_t RX_BUFF_N>
-void CanComm<TX_BUFF_N,RX_BUFF_N>::set_filter_free(uint32_t filter_no){
+inline void CanComm::set_filter_free(uint32_t filter_no){
 	CAN_FilterTypeDef filter;
 	filter.FilterIdHigh         = 0;
 	filter.FilterIdLow          = 0;
@@ -251,13 +249,6 @@ void CanComm<TX_BUFF_N,RX_BUFF_N>::set_filter_free(uint32_t filter_no){
 
 	HAL_CAN_ConfigFilter(can, &filter);
 }
-
-#endif
-
-#ifdef USE_CAN_BY_FDCAN
-class FDCanComm:public ICan{
-
-};
 
 #endif
 }

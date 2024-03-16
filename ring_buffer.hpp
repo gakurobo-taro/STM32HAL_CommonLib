@@ -22,8 +22,18 @@ enum class BuffSize:size_t{
 	SIZE128,
 };
 
+template<typename T>
+class IRingBuffer{
+public:
+	bool virtual push(const T& input) = 0;
+	bool virtual pop(T& output) = 0;
+	size_t virtual get_free_level(void)const = 0;
+	size_t virtual get_busy_level(void)const = 0;
+	void virtual reset(void) = 0;
+};
+
 template<typename T, size_t n>
-class RingBuffer{
+class RingBuffer : public IRingBuffer<T>{
 private:
 	const size_t SIZE = 1<<n;
 	const size_t MASK = SIZE-1;
@@ -33,7 +43,7 @@ private:
 
     T data_buff[1<<n] = {0};
 public:
-    bool push(const T &input){
+    bool push(const T &input)override{
         data_buff[head] = input;
         head = (head+1) & MASK;
         data_count ++;
@@ -45,7 +55,7 @@ public:
         return true;
     }
 
-    bool pop(T &output){
+    bool pop(T &output)override{
         if(data_count > 0){
             output = data_buff[tail];
             tail = (tail + 1) & MASK;
@@ -57,13 +67,13 @@ public:
         }
     }
 
-    size_t get_free_level(void)const{
+    size_t get_free_level(void)const override{
         return SIZE - data_count;
     }
-    size_t get_busy_level(void)const{
+    size_t get_busy_level(void)const override{
         return data_count;
     }
-    void reset(void){
+    void reset(void)override{
         head = 0;
         tail = 0;
         data_count = 0;
