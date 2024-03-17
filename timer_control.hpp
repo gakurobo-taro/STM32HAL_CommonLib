@@ -8,6 +8,9 @@
 #ifndef TIMER_CONTROL_HPP_
 #define TIMER_CONTROL_HPP_
 
+#include "main.h"
+#include <functional>
+
 namespace G24_STM32HAL::CommonLib{
 	class IInterruptionTimer{
 	public:
