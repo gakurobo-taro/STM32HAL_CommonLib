@@ -86,7 +86,7 @@ namespace G24_STM32HAL::CommonLib{
 		uint32_t length_count = 0;
 
 	public:
-		LEDGPIO(GPIO_TypeDef *_port,uint32_t _pin):port(_port),pin(_pin){
+		LEDLLGpio(GPIO_TypeDef *_port,uint32_t _pin):port(_port),pin(_pin){
 		}
 
 		void play(const LEDState *pattern) override{
@@ -95,10 +95,10 @@ namespace G24_STM32HAL::CommonLib{
 			length_count = 0;
 
 			length_count = playing_pattern[pattern_count].length;
-			if(state){
+			if(playing_pattern[pattern_count].state){
 				LL_GPIO_SetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
 			}else{
-				LL_GPIO_ReetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
+				LL_GPIO_ResetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
 			}
 		}
 
@@ -116,10 +116,10 @@ namespace G24_STM32HAL::CommonLib{
 						return;
 					}
 					length_count = playing_pattern[pattern_count].length;
-					if(state){
+					if(playing_pattern[pattern_count].state){
 						LL_GPIO_SetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
 					}else{
-						LL_GPIO_ReetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
+						LL_GPIO_ResetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
 					}
 				}
 			}else{
