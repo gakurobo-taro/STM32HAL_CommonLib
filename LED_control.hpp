@@ -96,9 +96,9 @@ namespace G24_STM32HAL::CommonLib{
 
 			length_count = playing_pattern[pattern_count].length;
 			if(playing_pattern[pattern_count].state){
-				LL_GPIO_SetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
+				LL_GPIO_SetOutputPin(port,pin);
 			}else{
-				LL_GPIO_ResetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
+				LL_GPIO_ResetOutputPin(port,pin);
 			}
 		}
 
@@ -117,9 +117,9 @@ namespace G24_STM32HAL::CommonLib{
 					}
 					length_count = playing_pattern[pattern_count].length;
 					if(playing_pattern[pattern_count].state){
-						LL_GPIO_SetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
+						LL_GPIO_SetOutputPin(port,pin);
 					}else{
-						LL_GPIO_ResetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
+						LL_GPIO_ResetOutputPin(port,pin);
 					}
 				}
 			}else{
