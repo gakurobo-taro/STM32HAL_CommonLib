@@ -131,7 +131,8 @@ private:
 	uint8_t tmp_data;
 	SerialData tmp_buff;
 public:
-	UartComm(UART_HandleTypeDef *_usb,std::unique_ptr<IRingBuffer<SerialData>> _rx_buff):
+	UartComm(UART_HandleTypeDef *_uart,std::unique_ptr<IRingBuffer<SerialData>> _rx_buff):
+		uart(_uart),
 		rx_buff(std::move(_rx_buff)){
 	}
 
