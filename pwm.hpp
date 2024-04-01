@@ -74,23 +74,17 @@ public:
 		: port(_port),pin(_pin),min(_min),max(_max),diff_inv(1/(max - min)){
 	}
 
-	void set_input_mode(bool mode){
-		if(mode) LL_GPIO_SetPinMode(port, pin, LL_GPIO_MODE_INPUT);
-		else LL_GPIO_SetPinMode(port, pin, LL_GPIO_MODE_OUTPUT);
-	}
-
 	void out(float val)override{
 		if(val < min || max < val)val  = 0;
 		duty = (val - min)*diff_inv*period;
 	}
 
 	void set_duty(const uint16_t _duty){ duty = _duty; }
-	uint16_t get_duty(void){ return duty; }
+	uint16_t get_duty(void)const{ return duty; }
 
 	void set_period(uint16_t _period){ count = 0; period = _period; }
-	uint16_t get_period(void){ return period; }
+	uint16_t get_period(void)const{ return period; }
 
-	bool get_input_state(void){ return LL_GPIO_IsInputPinSet(port,pin); }
 	void set_output_state(bool state){ output_state = state; }
 
 	//timer interrupt function
