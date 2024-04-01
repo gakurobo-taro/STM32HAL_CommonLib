@@ -122,8 +122,59 @@ inline void UsbCdcComm::rx_interrupt_task(const uint8_t *input,size_t size){
 #endif
 
 #ifdef USE_UART
-class UsbCdcComm : ISerial{
+#include "usart.h"
+class UartComm : ISerial{
+private:
+	UART_HandleTypeDef* uart;
+	std::unique_ptr<IRingBuffer<SerialData>> rx_buff;
 
+	uint8_t tmp_data;
+	SerialData tmp_buff;
+public:
+	UartComm(USBD_HandleTypeDef *_usb,std::unique_ptr<IRingBuffer<SerialData>> _rx_buff):
+		rx_buff(std::move(_rx_buff)){
+	}
+
+	UART_HandleTypeDef *get_handle(void)const{
+		return uart;
+	}
+
+	//tx functions
+	bool tx(const SerialData &data) override{
+		HAL_UART_Transmit_IT(uart, const_cast<uint8_t*>(data.data), data.size);
+		return true;
+	}
+	size_t tx_available(void)const override{
+		return (uart->gState == HAL_UART_STATE_BUSY_TX) ? 0 : 1;
+	}
+
+	//rx functions
+	void rx_start(void){
+		HAL_UART_Receive_IT(uart, &tmp_data, 1);
+	}
+	bool rx(SerialData &data) override{
+		return rx_buff->pop(data);
+	}
+	size_t rx_available(void) const override{
+		return rx_buff->get_busy_level();
+	}
+
+	void rx_interrupt_task(void){
+		if((tmp_data=='\r') || (tmp_data=='\n') || (tmp_data=='\0') || (tmp_buff.size >= tmp_buff.max_size-1)){
+			tmp_buff.data[tmp_buff.size] = tmp_data;
+			tmp_buff.size ++;
+
+			rx_buff->push(tmp_buff);
+
+			tmp_buff.size = 0;
+			memset(tmp_buff.data,0,tmp_buff.max_size);
+		}else{
+			tmp_buff.data[tmp_buff.size] = tmp_data;
+			tmp_buff.size ++;
+		}
+
+		rx_start();
+	}
 };
 #endif
 
