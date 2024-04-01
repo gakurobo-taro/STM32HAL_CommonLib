@@ -58,8 +58,7 @@ public:
 
 class PWMLLSoft:public IPWM{
 private:
-	GPIO_TypeDef *port;
-	const uint16_t pin;
+
 	const float min;
 	const float max;
 	const float diff_inv;
@@ -68,7 +67,9 @@ private:
 	uint16_t period = 0;
 	uint16_t duty = 0xFFFF;
 	bool output_state = false;
-
+protected:
+	GPIO_TypeDef *port;
+	const uint16_t pin;
 public:
 	PWMLLSoft(GPIO_TypeDef *_port,uint16_t _pin,float _min = 0,float _max = 1)
 		: port(_port),pin(_pin),min(_min),max(_max),diff_inv(1/(max - min)){
