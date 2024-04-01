@@ -11,9 +11,14 @@
 #include "main.h"
 #include "ring_buffer.hpp"
 #include <memory>
+
 #ifdef USE_USB_CDC
 #include "usbd_cdc_if.h"
 #include "usb_device.h"
+#endif
+
+#ifdef USE_UART
+#include "usart.h"
 #endif
 
 namespace G24_STM32HAL::CommonLib{
@@ -122,7 +127,6 @@ inline void UsbCdcComm::rx_interrupt_task(const uint8_t *input,size_t size){
 #endif
 
 #ifdef USE_UART
-#include "usart.h"
 class UartComm : ISerial{
 private:
 	UART_HandleTypeDef* uart;
