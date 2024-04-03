@@ -131,13 +131,18 @@ class UartComm : ISerial{
 private:
 	UART_HandleTypeDef* uart;
 	std::unique_ptr<IRingBuffer<SerialData>> rx_buff;
+	std::unique_ptr<IRingBuffer<SerialData>> tx_buff;
 
-	uint8_t tmp_data;
-	SerialData tmp_buff;
+	uint8_t rx_tmp_byte;
+	SerialData rx_tmp_packet;
+
+	SerialData tx_tmp_packet;
+	bool is_transmitting = false;
 public:
-	UartComm(UART_HandleTypeDef *_uart,std::unique_ptr<IRingBuffer<SerialData>> _rx_buff):
+	UartComm(UART_HandleTypeDef *_uart,std::unique_ptr<IRingBuffer<SerialData>> _rx_buff,std::unique_ptr<IRingBuffer<SerialData>> _tx_buff):
 		uart(_uart),
-		rx_buff(std::move(_rx_buff)){
+		rx_buff(std::move(_rx_buff)),
+		tx_buff(std::move(_tx_buff)){
 	}
 
 	UART_HandleTypeDef *get_handle(void)const{
@@ -146,16 +151,31 @@ public:
 
 	//tx functions
 	bool tx(const SerialData &data) override{
-		HAL_UART_Transmit_IT(uart, const_cast<uint8_t*>(data.data), data.size);
-		return true;
+		if(is_transmitting){
+			tx_buff->push(data);
+		}else{
+			tx_tmp_packet = data;
+			HAL_UART_Transmit_IT(uart, const_cast<uint8_t*>(tx_tmp_packet.data), tx_tmp_packet.size);
+			is_transmitting = true;
+			return true;
+		}
 	}
 	size_t tx_available(void)const override{
-		return (uart->gState == HAL_UART_STATE_BUSY_TX) ? 0 : 1;
+		return tx_buff->get_free_level();
+	}
+	void tx_interrupt_task(void){
+		if(tx_buff->get_busy_level()){
+			tx_buff->pop(tx_tmp_packet);
+			HAL_UART_Transmit_IT(uart, const_cast<uint8_t*>(tx_tmp_packet.data), tx_tmp_packet.size);
+			is_transmitting = true;
+		}else{
+			is_transmitting = false;
+		}
 	}
 
 	//rx functions
 	void rx_start(void){
-		HAL_UART_Receive_IT(uart, &tmp_data, 1);
+		HAL_UART_Receive_IT(uart, &rx_tmp_byte, 1);
 	}
 	bool rx(SerialData &data) override{
 		return rx_buff->pop(data);
@@ -165,17 +185,16 @@ public:
 	}
 
 	void rx_interrupt_task(void){
-		if((tmp_data=='\r') || (tmp_data=='\n') || (tmp_data=='\0') || (tmp_buff.size >= tmp_buff.max_size-1)){
-			tmp_buff.data[tmp_buff.size] = tmp_data;
-			tmp_buff.size ++;
+		if((rx_tmp_byte=='\r') || (rx_tmp_byte=='\n') || (rx_tmp_byte=='\0') || (rx_tmp_packet.size >= rx_tmp_packet.max_size-1)){
+			rx_tmp_packet.data[rx_tmp_packet.size] = rx_tmp_byte;
+			rx_tmp_packet.size ++;
 
-			rx_buff->push(tmp_buff);
+			rx_buff->push(rx_tmp_packet);
 
-			tmp_buff.size = 0;
-			memset(tmp_buff.data,0,tmp_buff.max_size);
+			rx_tmp_packet = SerialData{};
 		}else{
-			tmp_buff.data[tmp_buff.size] = tmp_data;
-			tmp_buff.size ++;
+			rx_tmp_packet.data[rx_tmp_packet.size] = rx_tmp_byte;
+			rx_tmp_packet.size ++;
 		}
 
 		rx_start();
