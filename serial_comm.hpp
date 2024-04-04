@@ -131,7 +131,6 @@ class UartComm : ISerial{
 private:
 	UART_HandleTypeDef* uart;
 	std::unique_ptr<IRingBuffer<SerialData>> rx_buff;
-	std::unique_ptr<IRingBuffer<SerialData>> tx_buff;
 
 	uint8_t rx_tmp_byte;
 	SerialData rx_tmp_packet;
@@ -139,10 +138,9 @@ private:
 	SerialData tx_tmp_packet;
 	bool is_transmitting = false;
 public:
-	UartComm(UART_HandleTypeDef *_uart,std::unique_ptr<IRingBuffer<SerialData>> _rx_buff,std::unique_ptr<IRingBuffer<SerialData>> _tx_buff):
+	UartComm(UART_HandleTypeDef *_uart,std::unique_ptr<IRingBuffer<SerialData>> _rx_buff):
 		uart(_uart),
-		rx_buff(std::move(_rx_buff)),
-		tx_buff(std::move(_tx_buff)){
+		rx_buff(std::move(_rx_buff)){
 	}
 
 	UART_HandleTypeDef *get_handle(void)const{
@@ -152,7 +150,7 @@ public:
 	//tx functions
 	bool tx(const SerialData &data) override{
 		if(is_transmitting){
-			tx_buff->push(data);
+			return false;
 		}else{
 			tx_tmp_packet = data;
 			HAL_UART_Transmit_IT(uart, const_cast<uint8_t*>(tx_tmp_packet.data), tx_tmp_packet.size);
@@ -161,16 +159,10 @@ public:
 		}
 	}
 	size_t tx_available(void)const override{
-		return tx_buff->get_free_level();
+		return is_transmitting?0:1;
 	}
 	void tx_interrupt_task(void){
-		if(tx_buff->get_busy_level()){
-			tx_buff->pop(tx_tmp_packet);
-			HAL_UART_Transmit_IT(uart, const_cast<uint8_t*>(tx_tmp_packet.data), tx_tmp_packet.size);
-			is_transmitting = true;
-		}else{
-			is_transmitting = false;
-		}
+		is_transmitting = false;
 	}
 
 	//rx functions
